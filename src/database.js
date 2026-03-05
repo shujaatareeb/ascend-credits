@@ -26,17 +26,9 @@ export async function withTransaction(handler) {
 
 export async function ensureUser(userId) {
   await query(
-    `INSERT INTO users (
-      user_id,
-      ac_balance,
-      ac_pending_locked,
-      monthly_ac_earned,
-      lifetime_ac_earned,
-      monthly_voice_minutes_valid,
-      monthly_message_count_valid
-    )
-    VALUES ($1, 0, 0, 0, 0, 0, 0)
-    ON CONFLICT (user_id) DO NOTHING`,
+    `INSERT INTO users (user_id, ac_balance, ac_pending_locked, lifetime_ac_earned)
+     VALUES ($1, 0, 0, 0)
+     ON CONFLICT (user_id) DO NOTHING`,
     [userId]
   );
 }
