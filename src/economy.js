@@ -10,11 +10,6 @@ export async function getBalance(userId) {
   return rows[0];
 }
 
-// Backward-compatible no-op: engagement earning is disabled in wallet-only mode.
-export async function awardCredits() {
-  return { awarded: 0, reason: 'earning_disabled_wallet_only' };
-}
-
 export async function adjustCredits({ userId, amount, reason, actorId }) {
   await ensureUser(userId);
   await withTransaction(async (client) => {

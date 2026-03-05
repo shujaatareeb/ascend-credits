@@ -6,11 +6,7 @@ import { loadCatalog } from './shop_catalog.js';
 import { redeemPanelButtons } from './ui/buttons.js';
 import { gamePackagesEmbed, redeemPanelEmbed } from './ui/embeds.js';
 
-async function getOrCreateCategory(guild, categoryOverride = null) {
-  if (categoryOverride?.type === ChannelType.GuildCategory) {
-    return categoryOverride;
-  }
-
+async function getOrCreateCategory(guild) {
   if (config.redemptionCategoryId) {
     const existing = guild.channels.cache.get(config.redemptionCategoryId);
     if (existing?.type === ChannelType.GuildCategory) return existing;
@@ -54,22 +50,14 @@ async function getOrCreateTextChannel(guild, categoryId, name, topic, isPrivateA
   });
 }
 
-export async function ensureInfrastructure(guild, overrides = {}) {
-  const category = await getOrCreateCategory(guild, overrides.category ?? null);
-  const redeemChannel =
-    overrides.redeemChannel?.type === ChannelType.GuildText
-      ? overrides.redeemChannel
-      : await getOrCreateTextChannel(
-          guild,
-          category.id,
-          'redeem',
-          'Main redemption panel for Ascend Credits stock and wallet actions.'
-        );
-
-  if (redeemChannel.parentId !== category.id) {
-    await redeemChannel.setParent(category.id);
-  }
-
+export async function ensureInfrastructure(guild) {
+  const category = await getOrCreateCategory(guild);
+  const redeemChannel = await getOrCreateTextChannel(
+    guild,
+    category.id,
+    'redeem',
+    'Main redemption panel for Ascend Credits stock and wallet actions.'
+  );
   const redeemHistoryChannel = await getOrCreateTextChannel(
     guild,
     category.id,
