@@ -1,12 +1,12 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { listShopItems } from '../redemption.js';
 import { shopEmbed } from '../ui/embeds.js';
+import { loadCatalog } from '../shop_catalog.js';
 
 export const data = new SlashCommandBuilder()
   .setName('shop')
-  .setDescription('Show redeemable stock items and their Ascend Credits cost');
+  .setDescription('Show games, packages, and Ascend Credits pricing');
 
 export async function execute(interaction) {
-  const items = await listShopItems();
-  await interaction.reply({ embeds: [shopEmbed(items)], ephemeral: true });
+  const catalog = await loadCatalog();
+  await interaction.reply({ embeds: [shopEmbed(catalog)], ephemeral: true });
 }

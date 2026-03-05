@@ -48,7 +48,13 @@ CREATE TABLE IF NOT EXISTS stock_items (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TYPE redemption_status AS ENUM ('requested', 'confirmed', 'approved', 'denied', 'closed');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'redemption_status') THEN
+    CREATE TYPE redemption_status AS ENUM ('requested', 'confirmed', 'approved', 'denied', 'closed');
+  END IF;
+END$$;
+
 CREATE TABLE IF NOT EXISTS redemption_tickets (
   ticket_id BIGSERIAL PRIMARY KEY,
   discord_channel_id TEXT NOT NULL,
@@ -63,9 +69,21 @@ CREATE TABLE IF NOT EXISTS redemption_tickets (
   notes_text TEXT
 );
 
-CREATE TYPE tx_type AS ENUM ('earn', 'redeem', 'adjust');
-CREATE TYPE tx_source AS ENUM ('voice', 'text', 'mod');
-CREATE TYPE tx_status AS ENUM ('success', 'failed', 'pending');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_type') THEN
+    CREATE TYPE tx_type AS ENUM ('earn', 'redeem', 'adjust');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_source') THEN
+    CREATE TYPE tx_source AS ENUM ('voice', 'text', 'mod');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_status') THEN
+    CREATE TYPE tx_status AS ENUM ('success', 'failed', 'pending');
+  END IF;
+END$$;
+
 CREATE TABLE IF NOT EXISTS transactions (
   transaction_id BIGSERIAL PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(user_id),
