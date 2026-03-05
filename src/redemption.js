@@ -72,12 +72,14 @@ export async function createPurchaseTicket({ guild, user, item }) {
   const channel = await guild.channels.create({
     name: `ticket-${user.username}-${item.itemId}`.slice(0, 90),
     type: ChannelType.GuildText,
-    parent: config.ticketCategoryId,
+    parent: ticketCategoryId,
     permissionOverwrites: [
       { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
-      { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
-      { id: config.moderatorRoleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
-      { id: config.adminRoleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
+      { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
+      {
+        id: config.adminRoleId,
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+      }
     ]
   });
 
@@ -124,6 +126,9 @@ export async function denyTicketWithRefund(ticketId, actorId) {
        WHERE ticket_id = $1`,
       [ticketId, actorId]
     );
+
+    const balance = await client.query('SELECT ac_balance, ac_pending_locked FROM users WHERE user_id = $1', [ticket.user_id]);
+    return { ticket, balance: balance.rows[0] };
   });
 }
 

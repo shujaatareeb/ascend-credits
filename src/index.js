@@ -24,20 +24,26 @@ import * as adjustcredits from './commands/adjustcredits.js';
 import * as addstock from './commands/addstock.js';
 import * as removestock from './commands/removestock.js';
 
-const commandModules = [balance, shop, redeem, leaderboard, adjustcredits, addstock, removestock];
+const commandModules = [adjustcredits, addstock, removestock];
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates
-  ]
-});
-
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
+let infra = null;
+
 for (const command of commandModules) {
   client.commands.set(command.data.name, command);
+}
+
+function isAdminMember(interaction) {
+  return interaction.member?.roles?.cache?.has(config.adminRoleId);
+}
+
+async function safeDm(clientUser, content) {
+  try {
+    await clientUser.send(content);
+  } catch (error) {
+    console.warn('Could not DM user:', clientUser.id, error.message);
+  }
 }
 
 client.once(Events.ClientReady, async () => {
@@ -153,7 +159,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
   } catch (error) {
     console.error(error);
     if (interaction.isRepliable()) {
-      await interaction.reply({ content: 'Something went wrong processing this interaction.', ephemeral: true });
+      const message = error?.message ?? 'Something went wrong processing this interaction.';
+      await interaction.reply({ content: message, ephemeral: true });
     }
   }
 });
