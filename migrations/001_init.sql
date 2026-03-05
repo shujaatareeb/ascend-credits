@@ -2,36 +2,9 @@ CREATE TABLE IF NOT EXISTS users (
   user_id TEXT PRIMARY KEY,
   ac_balance INTEGER NOT NULL DEFAULT 0,
   ac_pending_locked INTEGER NOT NULL DEFAULT 0,
-  monthly_ac_earned INTEGER NOT NULL DEFAULT 0,
   lifetime_ac_earned INTEGER NOT NULL DEFAULT 0,
-  monthly_voice_minutes_valid INTEGER NOT NULL DEFAULT 0,
-  monthly_message_count_valid INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS voice_sessions (
-  session_id BIGSERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(user_id),
-  channel_id TEXT NOT NULL,
-  started_at TIMESTAMPTZ NOT NULL,
-  ended_at TIMESTAMPTZ,
-  valid_minutes INTEGER NOT NULL DEFAULT 0,
-  speaking_events_count INTEGER NOT NULL DEFAULT 0,
-  was_valid BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS message_events (
-  event_id BIGSERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(user_id),
-  channel_id TEXT NOT NULL,
-  message_id TEXT NOT NULL,
-  message_hash TEXT,
-  length_int INTEGER NOT NULL,
-  was_rewarded BOOLEAN NOT NULL DEFAULT FALSE,
-  rewarded_ac INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS stock_items (
@@ -72,6 +45,11 @@ CREATE TABLE IF NOT EXISTS redemption_tickets (
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_type') THEN
+    CREATE TYPE tx_type AS ENUM ('redeem', 'adjust');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_source') THEN
+    CREATE TYPE tx_source AS ENUM ('mod');
     CREATE TYPE tx_type AS ENUM ('earn', 'redeem', 'adjust');
   END IF;
 
@@ -92,14 +70,6 @@ CREATE TABLE IF NOT EXISTS transactions (
   amount_ac INTEGER NOT NULL,
   reference_id TEXT,
   status tx_status NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS leaderboard_snapshots (
-  snapshot_id BIGSERIAL PRIMARY KEY,
-  month_key TEXT NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users(user_id),
-  monthly_ac_earned INTEGER NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

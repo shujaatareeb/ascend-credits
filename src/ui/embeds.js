@@ -11,6 +11,11 @@ export function balanceEmbed({ ac_balance, ac_pending_locked, lifetime_ac_earned
     );
 }
 
+export function redeemPanelEmbed(catalog) {
+  const lines = catalog.products.flatMap((product) =>
+    product.denominations.map(
+      (denomination) =>
+        `• **${product.game}** — ${denomination.amount}: ₹${denomination.discountedPriceInr.toFixed(2)} (${denomination.costAc} AC)`
 export function shopEmbed(catalog) {
   const lines = catalog.products.flatMap((product) =>
     product.denominations.map(
@@ -20,6 +25,28 @@ export function shopEmbed(catalog) {
   );
 
   return new EmbedBuilder()
+    .setTitle('Ascend Credits Redemption')
+    .setDescription(
+      [
+        'Use **Redeem Ascend Credits** to place an order. Use **View Balance** anytime during checkout.',
+        `Conversion: **1 INR = ${catalog.conversionRate} AC**.`,
+        '',
+        '**Available Stock**',
+        ...lines
+      ]
+        .join('\n')
+        .slice(0, 4000)
+    );
+}
+
+export function gamePackagesEmbed(game, balance) {
+  return new EmbedBuilder()
+    .setTitle(game.game)
+    .setDescription(game.description)
+    .addFields(
+      { name: 'Current Wallet Balance', value: `${balance.ac_balance} AC`, inline: true },
+      { name: 'Locked', value: `${balance.ac_pending_locked} AC`, inline: true }
+    );
     .setTitle('Ascend Redemption Shop')
     .setDescription(lines.join('\n').slice(0, 4000))
     .setFooter({ text: `Conversion rate: 1 INR = ${catalog.conversionRate} AC` });
