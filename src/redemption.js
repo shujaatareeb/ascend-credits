@@ -1,35 +1,76 @@
 import { ChannelType, PermissionFlagsBits } from 'discord.js';
 import { config } from './config.js';
-import { query, withTransaction } from './database.js';
+import { ensureUser, query, withTransaction } from './database.js';
 
-export async function listShopItems() {
-  const { rows } = await query(
-    `SELECT item_id, game, denomination_label, cost_ac, stock_quantity, active_boolean
-     FROM stock_items
-     WHERE active_boolean = true
-     ORDER BY game ASC, cost_ac ASC`
-  );
-  return rows;
+export async function syncCatalogToStock(catalog) {
+  for (const product of catalog.products) {
+    for (const denomination of product.denominations) {
+      await query(
+        `INSERT INTO stock_items (
+          item_id, game, description, denomination_label,
+          original_price_inr_numeric, discounted_price_inr_numeric,
+          cost_ac, stock_quantity, active_boolean
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 999999, true)
+        ON CONFLICT (item_id) DO UPDATE SET
+          game = EXCLUDED.game,
+          description = EXCLUDED.description,
+          denomination_label = EXCLUDED.denomination_label,
+          original_price_inr_numeric = EXCLUDED.original_price_inr_numeric,
+          discounted_price_inr_numeric = EXCLUDED.discounted_price_inr_numeric,
+          cost_ac = EXCLUDED.cost_ac,
+          active_boolean = true,
+          updated_at = NOW()`,
+        [
+          denomination.itemId,
+          product.game,
+          product.description,
+          denomination.amount,
+          denomination.originalPriceInr,
+          denomination.discountedPriceInr,
+          denomination.costAc
+        ]
+      );
+    }
+  }
 }
 
-export async function createRedemptionTicket({ guild, user, itemId }) {
-  const itemResult = await query(
-    `SELECT item_id, denomination_label, cost_ac, stock_quantity, active_boolean
-     FROM stock_items WHERE item_id = $1`,
-    [itemId]
-  );
-  const item = itemResult.rows[0];
-  if (!item || !item.active_boolean || item.stock_quantity <= 0) {
-    throw new Error('Item unavailable');
-  }
+export async function createPurchaseTicket({ guild, user, item }) {
+  await ensureUser(user.id);
 
-  const userResult = await query('SELECT ac_balance FROM users WHERE user_id = $1', [user.id]);
-  if (!userResult.rows[0] || Number(userResult.rows[0].ac_balance) < Number(item.cost_ac)) {
-    throw new Error('Insufficient balance');
-  }
+  const result = await withTransaction(async (client) => {
+    const userResult = await client.query('SELECT ac_balance FROM users WHERE user_id = $1 FOR UPDATE', [user.id]);
+    const balance = Number(userResult.rows[0]?.ac_balance ?? 0);
+    if (balance < item.costAc) {
+      throw new Error('Insufficient balance');
+    }
+
+    await client.query(
+      `UPDATE users
+       SET ac_balance = ac_balance - $2,
+           ac_pending_locked = ac_pending_locked + $2,
+           updated_at = NOW()
+       WHERE user_id = $1`,
+      [user.id, item.costAc]
+    );
+
+    await client.query(
+      `INSERT INTO transactions (user_id, type, source, amount_ac, reference_id, status)
+       VALUES ($1, 'redeem', 'mod', $2, $3, 'pending')`,
+      [user.id, item.costAc, item.itemId]
+    );
+
+    return client.query(
+      `INSERT INTO redemption_tickets (
+        discord_channel_id, user_id, item_id, cost_ac, status
+      ) VALUES ('pending-channel', $1, $2, $3, 'confirmed') RETURNING ticket_id`,
+      [user.id, item.itemId, item.costAc]
+    );
+  });
+
+  const ticketId = result.rows[0].ticket_id;
 
   const channel = await guild.channels.create({
-    name: `ticket-${user.username}-${item.item_id}`.slice(0, 90),
+    name: `ticket-${user.username}-${item.itemId}`.slice(0, 90),
     type: ChannelType.GuildText,
     parent: config.ticketCategoryId,
     permissionOverwrites: [
@@ -40,41 +81,57 @@ export async function createRedemptionTicket({ guild, user, itemId }) {
     ]
   });
 
-  const ticket = await query(
-    `INSERT INTO redemption_tickets (
-      discord_channel_id, user_id, item_id, cost_ac, status
-    ) VALUES ($1, $2, $3, $4, 'requested') RETURNING ticket_id`,
-    [channel.id, user.id, item.item_id, item.cost_ac]
-  );
-
-  return { channel, ticketId: ticket.rows[0].ticket_id, item };
+  await query('UPDATE redemption_tickets SET discord_channel_id = $2 WHERE ticket_id = $1', [ticketId, channel.id]);
+  return { channel, ticketId };
 }
 
-export async function confirmTicket(ticketId, userId) {
+export async function approveTicket(ticketId, actorId) {
+  await query(
+    `UPDATE redemption_tickets
+     SET status = 'approved', decided_at = NOW(), decided_by_user_id = $2
+     WHERE ticket_id = $1 AND status = 'confirmed'`,
+    [ticketId, actorId]
+  );
+}
+
+export async function denyTicketWithRefund(ticketId, actorId) {
   await withTransaction(async (client) => {
-    const ticketResult = await client.query(
-      `SELECT * FROM redemption_tickets WHERE ticket_id = $1 FOR UPDATE`,
-      [ticketId]
-    );
+    const ticketResult = await client.query('SELECT * FROM redemption_tickets WHERE ticket_id = $1 FOR UPDATE', [ticketId]);
     const ticket = ticketResult.rows[0];
-    if (!ticket || ticket.user_id !== userId || ticket.status !== 'requested') {
-      throw new Error('Ticket invalid');
+    if (!ticket || !['confirmed', 'requested'].includes(ticket.status)) {
+      throw new Error('Ticket not refundable');
     }
 
     await client.query(
       `UPDATE users
-       SET ac_balance = ac_balance - $2,
-           ac_pending_locked = ac_pending_locked + $2,
+       SET ac_balance = ac_balance + $2,
+           ac_pending_locked = GREATEST(0, ac_pending_locked - $2),
            updated_at = NOW()
-       WHERE user_id = $1 AND ac_balance >= $2`,
-      [userId, ticket.cost_ac]
+       WHERE user_id = $1`,
+      [ticket.user_id, ticket.cost_ac]
+    );
+
+    await client.query(
+      `UPDATE transactions
+       SET status = 'failed'
+       WHERE user_id = $1 AND type = 'redeem' AND amount_ac = $2 AND status = 'pending'`,
+      [ticket.user_id, ticket.cost_ac]
     );
 
     await client.query(
       `UPDATE redemption_tickets
-       SET status = 'confirmed', confirmed_at = NOW()
+       SET status = 'denied', decided_at = NOW(), decided_by_user_id = $2
        WHERE ticket_id = $1`,
-      [ticketId]
+      [ticketId, actorId]
     );
   });
+}
+
+export async function closeTicket(ticketId, actorId) {
+  await query(
+    `UPDATE redemption_tickets
+     SET status = 'closed', decided_at = NOW(), decided_by_user_id = $2
+     WHERE ticket_id = $1`,
+    [ticketId, actorId]
+  );
 }

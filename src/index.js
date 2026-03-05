@@ -1,17 +1,21 @@
 import {
+  ActionRowBuilder,
   Client,
   Collection,
   Events,
   GatewayIntentBits,
+  PermissionFlagsBits,
   REST,
   Routes,
-  PermissionFlagsBits
+  StringSelectMenuBuilder
 } from 'discord.js';
 import { config } from './config.js';
 import { registerVoiceTracker } from './voice_tracker.js';
 import { registerMessageTracker } from './message_tracker.js';
 import { registerSchedulers } from './scheduler.js';
-import { confirmTicket } from './redemption.js';
+import { approveTicket, closeTicket, createPurchaseTicket, denyTicketWithRefund, syncCatalogToStock } from './redemption.js';
+import { loadCatalog, getGameByIndex, getPackageByIndexes } from './shop_catalog.js';
+import { ticketModButtons } from './ui/buttons.js';
 import * as balance from './commands/balance.js';
 import * as shop from './commands/shop.js';
 import * as redeem from './commands/redeem.js';
@@ -42,6 +46,9 @@ client.once(Events.ClientReady, async () => {
     body: commandModules.map((c) => c.data.toJSON())
   });
 
+  const catalog = await loadCatalog();
+  await syncCatalogToStock(catalog);
+
   registerVoiceTracker(client);
   registerMessageTracker(client);
   registerSchedulers();
@@ -57,28 +64,91 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId === 'redeem:game') {
+        const gameIndex = Number(interaction.values[0]);
+        const game = await getGameByIndex(gameIndex);
+        if (!game) {
+          await interaction.update({ content: 'Invalid game selection.', components: [] });
+          return;
+        }
+
+        const packageMenu = new StringSelectMenuBuilder()
+          .setCustomId(`redeem:package:${gameIndex}`)
+          .setPlaceholder(`Select package for ${game.game.slice(0, 80)}`)
+          .addOptions(
+            game.denominations.map((denomination) => ({
+              label: denomination.amount.slice(0, 100),
+              description: `${denomination.costAc} AC (₹${denomination.discountedPriceInr.toFixed(2)})`.slice(0, 100),
+              value: String(denomination.packageIndex)
+            }))
+          );
+
+        await interaction.update({
+          content: `**${game.game}**\n${game.description}`,
+          components: [new ActionRowBuilder().addComponents(packageMenu)]
+        });
+        return;
+      }
+
+      if (interaction.customId.startsWith('redeem:package:')) {
+        const gameIndex = Number(interaction.customId.split(':')[2]);
+        const packageIndex = Number(interaction.values[0]);
+        const game = await getGameByIndex(gameIndex);
+        const selectedPackage = await getPackageByIndexes(gameIndex, packageIndex);
+
+        if (!game || !selectedPackage) {
+          await interaction.update({ content: 'Invalid package selection.', components: [] });
+          return;
+        }
+
+        const { channel, ticketId } = await createPurchaseTicket({
+          guild: interaction.guild,
+          user: interaction.user,
+          item: selectedPackage
+        });
+
+        await channel.send({
+          content:
+            `User: <@${interaction.user.id}>\nGame: ${game.game}\nPackage: ${selectedPackage.amount}\n` +
+            `Debited: ${selectedPackage.costAc} AC\nTicket ID: ${ticketId}\n` +
+            'Admins: approve, deny+refund, or close this ticket.',
+          components: [ticketModButtons(ticketId)]
+        });
+
+        await interaction.update({
+          content: `Purchase ticket created: <#${channel.id}>. ${selectedPackage.costAc} AC has been locked for this order.`,
+          components: []
+        });
+      }
+      return;
+    }
+
     if (!interaction.isButton()) return;
     const [scope, action, ticketId] = interaction.customId.split(':');
     if (scope !== 'ticket') return;
-
-    if (action === 'confirm') {
-      await confirmTicket(ticketId, interaction.user.id);
-      await interaction.reply({ content: 'Ticket confirmed. Credits locked pending moderator decision.', ephemeral: true });
-      return;
-    }
-
-    if (action === 'cancel') {
-      await interaction.reply({ content: 'Ticket cancelled. Ask staff to close this channel.', ephemeral: true });
-      return;
-    }
 
     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
       await interaction.reply({ content: 'Moderator or admin only.', ephemeral: true });
       return;
     }
 
-    if (action === 'approve' || action === 'deny') {
-      await interaction.reply({ content: `${action} handling scaffolded. Implement final stock + ledger transitions here.`, ephemeral: true });
+    if (action === 'approve') {
+      await approveTicket(ticketId, interaction.user.id);
+      await interaction.reply({ content: 'Ticket approved.', ephemeral: true });
+      return;
+    }
+
+    if (action === 'deny') {
+      await denyTicketWithRefund(ticketId, interaction.user.id);
+      await interaction.reply({ content: 'Ticket denied and credits refunded.', ephemeral: true });
+      return;
+    }
+
+    if (action === 'close') {
+      await closeTicket(ticketId, interaction.user.id);
+      await interaction.reply({ content: 'Ticket closed.', ephemeral: true });
+      return;
     }
   } catch (error) {
     console.error(error);
