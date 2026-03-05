@@ -23,6 +23,7 @@ import * as leaderboard from './commands/leaderboard.js';
 import * as adjustcredits from './commands/adjustcredits.js';
 import * as addstock from './commands/addstock.js';
 import * as removestock from './commands/removestock.js';
+import * as setup from './commands/setup.js';
 
 const commandModules = [adjustcredits, addstock, removestock];
 
@@ -66,7 +67,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName);
       if (!command) return;
-      await command.execute(interaction);
+      const result = await command.execute(interaction);
+      if (interaction.commandName === 'setup' && result) {
+        infra = result;
+      }
       return;
     }
 
