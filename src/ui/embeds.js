@@ -1,24 +1,45 @@
 import { EmbedBuilder } from 'discord.js';
 
-export function balanceEmbed({ ac_balance, ac_pending_locked, monthly_ac_earned, lifetime_ac_earned }) {
+export function balanceEmbed({ ac_balance, ac_pending_locked, lifetime_ac_earned }) {
   return new EmbedBuilder()
-    .setTitle('Ascend Credits Balance')
+    .setTitle('Ascend Wallet')
+    .setDescription('Ascend Credits (AC) is your wallet currency for redeeming game packages.')
     .addFields(
-      { name: 'Current AC Balance', value: String(ac_balance), inline: true },
-      { name: 'Pending AC Locked', value: String(ac_pending_locked), inline: true },
-      { name: 'Monthly AC Earned', value: String(monthly_ac_earned), inline: true },
-      { name: 'Lifetime AC Earned', value: String(lifetime_ac_earned), inline: true }
+      { name: 'Available Balance', value: `${ac_balance} AC`, inline: true },
+      { name: 'Locked in Active Orders', value: `${ac_pending_locked} AC`, inline: true },
+      { name: 'Lifetime Earned', value: `${lifetime_ac_earned} AC`, inline: true }
     );
 }
 
-export function shopEmbed(items) {
+export function redeemPanelEmbed(catalog) {
+  const lines = catalog.products.flatMap((product) =>
+    product.denominations.map(
+      (denomination) =>
+        `• **${product.game}** — ${denomination.amount}: ₹${denomination.discountedPriceInr.toFixed(2)} (${denomination.costAc} AC)`
+    )
+  );
+
   return new EmbedBuilder()
-    .setTitle('Ascend Shop')
+    .setTitle('Ascend Credits Redemption')
     .setDescription(
-      items.length
-        ? items
-            .map((item) => `${item.game} • ${item.denomination_label} • ${item.cost_ac} AC • Stock: ${item.stock_quantity}`)
-            .join('\n')
-        : 'No active stock items right now.'
+      [
+        'Use **Redeem Ascend Credits** to place an order. Use **View Balance** anytime during checkout.',
+        `Conversion: **1 INR = ${catalog.conversionRate} AC**.`,
+        '',
+        '**Available Stock**',
+        ...lines
+      ]
+        .join('\n')
+        .slice(0, 4000)
+    );
+}
+
+export function gamePackagesEmbed(game, balance) {
+  return new EmbedBuilder()
+    .setTitle(game.game)
+    .setDescription(game.description)
+    .addFields(
+      { name: 'Current Wallet Balance', value: `${balance.ac_balance} AC`, inline: true },
+      { name: 'Locked', value: `${balance.ac_pending_locked} AC`, inline: true }
     );
 }
