@@ -16,6 +16,11 @@ export function redeemPanelEmbed(catalog) {
     product.denominations.map(
       (denomination) =>
         `• **${product.game}** — ${denomination.amount}: ₹${denomination.discountedPriceInr.toFixed(2)} (${denomination.costAc} AC)`
+export function shopEmbed(catalog) {
+  const lines = catalog.products.flatMap((product) =>
+    product.denominations.map(
+      (denomination) =>
+        `• **${product.game}** — ${denomination.amount}: ₹${denomination.discountedPriceInr.toFixed(2)} → ${denomination.costAc} AC`
     )
   );
 
@@ -42,4 +47,7 @@ export function gamePackagesEmbed(game, balance) {
       { name: 'Current Wallet Balance', value: `${balance.ac_balance} AC`, inline: true },
       { name: 'Locked', value: `${balance.ac_pending_locked} AC`, inline: true }
     );
+    .setTitle('Ascend Redemption Shop')
+    .setDescription(lines.join('\n').slice(0, 4000))
+    .setFooter({ text: `Conversion rate: 1 INR = ${catalog.conversionRate} AC` });
 }

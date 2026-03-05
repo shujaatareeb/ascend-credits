@@ -11,6 +11,7 @@ async function getOrCreateCategory(guild, categoryOverride = null) {
     return categoryOverride;
   }
 
+async function getOrCreateCategory(guild) {
   if (config.redemptionCategoryId) {
     const existing = guild.channels.cache.get(config.redemptionCategoryId);
     if (existing?.type === ChannelType.GuildCategory) return existing;
@@ -70,6 +71,14 @@ export async function ensureInfrastructure(guild, overrides = {}) {
     await redeemChannel.setParent(category.id);
   }
 
+export async function ensureInfrastructure(guild) {
+  const category = await getOrCreateCategory(guild);
+  const redeemChannel = await getOrCreateTextChannel(
+    guild,
+    category.id,
+    'redeem',
+    'Main redemption panel for Ascend Credits stock and wallet actions.'
+  );
   const redeemHistoryChannel = await getOrCreateTextChannel(
     guild,
     category.id,

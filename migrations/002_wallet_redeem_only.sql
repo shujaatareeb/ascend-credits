@@ -1,17 +1,22 @@
 -- Upgrade for pre-wallet schema to wallet/redeem-only model
 
 -- Remove old engagement tables if they still exist
+-- Wallet + Redeem only schema update
+
+-- Remove engagement-reward tables (optional cleanup)
 DROP TABLE IF EXISTS leaderboard_snapshots;
 DROP TABLE IF EXISTS message_events;
 DROP TABLE IF EXISTS voice_sessions;
 
 -- Remove old engagement columns if they still exist
+-- Users: keep only wallet-focused stats
 ALTER TABLE users
   DROP COLUMN IF EXISTS monthly_ac_earned,
   DROP COLUMN IF EXISTS monthly_voice_minutes_valid,
   DROP COLUMN IF EXISTS monthly_message_count_valid;
 
 -- Ensure required wallet columns exist
+-- Ensure users table has required wallet columns
 ALTER TABLE users
   ADD COLUMN IF NOT EXISTS ac_balance INTEGER NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS ac_pending_locked INTEGER NOT NULL DEFAULT 0,
@@ -36,6 +41,15 @@ BEGIN
 
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_source') THEN
     CREATE TYPE tx_source AS ENUM ('mod');
+-- Transactions enum compatibility (keep redeem + adjust, retain old values if already present)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_type') THEN
+    CREATE TYPE tx_type AS ENUM ('redeem', 'adjust', 'earn');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_source') THEN
+    CREATE TYPE tx_source AS ENUM ('mod', 'voice', 'text');
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_status') THEN
@@ -43,6 +57,7 @@ BEGIN
   END IF;
 END$$;
 
+-- Transactions table
 CREATE TABLE IF NOT EXISTS transactions (
   transaction_id BIGSERIAL PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(user_id),
@@ -54,6 +69,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Stock table (JSON-synced catalog)
 CREATE TABLE IF NOT EXISTS stock_items (
   item_id TEXT PRIMARY KEY,
   game TEXT NOT NULL,
@@ -67,6 +83,14 @@ CREATE TABLE IF NOT EXISTS stock_items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ticket statuses
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'redemption_status') THEN
+    CREATE TYPE redemption_status AS ENUM ('requested', 'confirmed', 'approved', 'denied', 'closed');
+  END IF;
+END$$;
 
 CREATE TABLE IF NOT EXISTS redemption_tickets (
   ticket_id BIGSERIAL PRIMARY KEY,
@@ -82,6 +106,7 @@ CREATE TABLE IF NOT EXISTS redemption_tickets (
   notes_text TEXT
 );
 
+-- Channel and infra metadata
 CREATE TABLE IF NOT EXISTS bot_meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

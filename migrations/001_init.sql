@@ -50,6 +50,11 @@ BEGIN
 
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_source') THEN
     CREATE TYPE tx_source AS ENUM ('mod');
+    CREATE TYPE tx_type AS ENUM ('earn', 'redeem', 'adjust');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_source') THEN
+    CREATE TYPE tx_source AS ENUM ('voice', 'text', 'mod');
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_status') THEN
