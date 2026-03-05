@@ -1,6 +1,3 @@
--- Upgrade for pre-wallet schema to wallet/redeem-only model
-
--- Remove old engagement tables if they still exist
 -- Wallet + Redeem only schema update
 
 -- Remove engagement-reward tables (optional cleanup)
@@ -8,14 +5,12 @@ DROP TABLE IF EXISTS leaderboard_snapshots;
 DROP TABLE IF EXISTS message_events;
 DROP TABLE IF EXISTS voice_sessions;
 
--- Remove old engagement columns if they still exist
 -- Users: keep only wallet-focused stats
 ALTER TABLE users
   DROP COLUMN IF EXISTS monthly_ac_earned,
   DROP COLUMN IF EXISTS monthly_voice_minutes_valid,
   DROP COLUMN IF EXISTS monthly_message_count_valid;
 
--- Ensure required wallet columns exist
 -- Ensure users table has required wallet columns
 ALTER TABLE users
   ADD COLUMN IF NOT EXISTS ac_balance INTEGER NOT NULL DEFAULT 0,
@@ -24,23 +19,6 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
--- Ensure redemption status enum exists
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'redemption_status') THEN
-    CREATE TYPE redemption_status AS ENUM ('requested', 'confirmed', 'approved', 'denied', 'closed');
-  END IF;
-END$$;
-
--- Ensure transaction enums exist; if existing enums have extra legacy values, keep them
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_type') THEN
-    CREATE TYPE tx_type AS ENUM ('redeem', 'adjust');
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tx_source') THEN
-    CREATE TYPE tx_source AS ENUM ('mod');
 -- Transactions enum compatibility (keep redeem + adjust, retain old values if already present)
 DO $$
 BEGIN
