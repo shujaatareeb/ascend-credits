@@ -11,14 +11,16 @@ export function balanceEmbed({ ac_balance, ac_pending_locked, monthly_ac_earned,
     );
 }
 
-export function shopEmbed(items) {
+export function shopEmbed(catalog) {
+  const lines = catalog.products.flatMap((product) =>
+    product.denominations.map(
+      (denomination) =>
+        `• **${product.game}** — ${denomination.amount}: ₹${denomination.discountedPriceInr.toFixed(2)} → ${denomination.costAc} AC`
+    )
+  );
+
   return new EmbedBuilder()
-    .setTitle('Ascend Shop')
-    .setDescription(
-      items.length
-        ? items
-            .map((item) => `${item.game} • ${item.denomination_label} • ${item.cost_ac} AC • Stock: ${item.stock_quantity}`)
-            .join('\n')
-        : 'No active stock items right now.'
-    );
+    .setTitle('Ascend Redemption Shop')
+    .setDescription(lines.join('\n').slice(0, 4000))
+    .setFooter({ text: `Conversion rate: 1 INR = ${catalog.conversionRate} AC` });
 }

@@ -1,9 +1,17 @@
-# Ascend Rewards Bot
+# Ascend Credits Discord Redemption Bot
 
-Discord bot that rewards engagement with Ascend Credits (AC), supports a stock-based shop, and runs moderator-approved redemption tickets.
+Discord bot that tracks Ascend Credits (AC), exposes a JSON-based redemption catalog, and creates moderator-managed purchase tickets.
+
+## Core flow
+1. User runs `/redeem`.
+2. Bot shows game dropdown.
+3. User selects game, then package.
+4. Bot converts INR prices to AC using `1 INR = 10 AC` (from JSON catalog).
+5. If balance is enough, credits are deducted and locked.
+6. A private ticket channel is created for moderators/admins.
+7. Admin can approve, deny+refund, or close the ticket.
 
 ## Setup
-
 1. Install dependencies:
    ```bash
    npm install
@@ -17,7 +25,8 @@ Discord bot that rewards engagement with Ascend Credits (AC), supports a stock-b
    - TICKET_CATEGORY_ID
    - DATABASE_URL
 3. Run SQL migration in `migrations/001_init.sql`.
-4. Start bot:
+4. Edit `data/shop.json` for product inventory.
+5. Start bot:
    ```bash
    npm start
    ```
@@ -25,7 +34,7 @@ Discord bot that rewards engagement with Ascend Credits (AC), supports a stock-b
 ## Commands
 - `/balance`
 - `/shop`
-- `/redeem item_id:<id>`
+- `/redeem`
 - `/leaderboard`
 - `/adjustcredits` (admin)
 - `/addstock` (admin)

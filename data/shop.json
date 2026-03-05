@@ -1,0 +1,83 @@
+{
+  "products": [
+    {
+      "game": "Genshin Impact - Genesis Crystals",
+      "description": "The Genesis Crystals Gift Card adds official Genesis Crystals to your Genshin Impact account, letting you unlock new characters, weapons and Primogem wishes through fast, secure redemption on HoYoverse platforms.",
+      "denominations": [
+        { "amount": "60 Genesis Crystals", "original_price": 100, "discounted_price": 85 },
+        { "amount": "330 Genesis Crystals", "original_price": 505, "discounted_price": 429.25 },
+        { "amount": "1090 Genesis Crystals", "original_price": 1564, "discounted_price": 1328.55 },
+        { "amount": "2240 Genesis Crystals", "original_price": 3035, "discounted_price": 2579.75 },
+        { "amount": "3880 Genesis Crystals", "original_price": 5059, "discounted_price": 4300.15 },
+        { "amount": "8080 Genesis Crystals", "original_price": 10119, "discounted_price": 8601.15 }
+      ]
+    },
+    {
+      "game": "BGMI - Unknown Cash",
+      "description": "The UniPin BGMI Gift Card lets you recharge UC (Unknown Cash) to purchase exclusive in-game items like outfits, weapon skins, emotes, and the Royale Pass.",
+      "denominations": [
+        { "amount": "60 UC", "original_price": 75, "discounted_price": 71.25 },
+        { "amount": "325 UC", "original_price": 380, "discounted_price": 361 },
+        { "amount": "660 UC", "original_price": 750, "discounted_price": 712.5 },
+        { "amount": "1800 UC", "original_price": 1900, "discounted_price": 1805 },
+        { "amount": "3850 UC", "original_price": 3800, "discounted_price": 3610 },
+        { "amount": "8100 UC", "original_price": 7500, "discounted_price": 7125 }
+      ]
+    },
+    {
+      "game": "Minecraft - Minecoins",
+      "description": "The Minecoins Gift Card credits official Minecoins to your Minecraft account, letting you buy exclusive Marketplace content such as skins, texture packs, worlds and community creations.",
+      "denominations": [
+        { "amount": "1720 Minecoins", "original_price": 549, "discounted_price": 532.53 },
+        { "amount": "3500 Minecoins", "original_price": 1099, "discounted_price": 1066.03 }
+      ]
+    },
+    {
+      "game": "Mobile Legends - Diamonds",
+      "description": "The Mobile Legends: Bang Bang Diamonds Voucher lets you recharge Diamonds to purchase heroes, skins, emotes, battle effects and event-exclusive content.",
+      "denominations": [
+        { "amount": "86 Diamonds", "original_price": 141, "discounted_price": 126.9 },
+        { "amount": "172 Diamonds", "original_price": 281, "discounted_price": 252.9 },
+        { "amount": "257 Diamonds", "original_price": 420, "discounted_price": 378 },
+        { "amount": "706 Diamonds", "original_price": 1124, "discounted_price": 1011.6 },
+        { "amount": "2195 Diamonds", "original_price": 3373, "discounted_price": 3035.7 },
+        { "amount": "3688 Diamonds", "original_price": 5626, "discounted_price": 5063.4 },
+        { "amount": "5532 Diamonds", "original_price": 8439, "discounted_price": 7595.1 },
+        { "amount": "9288 Diamonds", "original_price": 14064, "discounted_price": 12657.6 }
+      ]
+    },
+    {
+      "game": "Roblox - USD Credits",
+      "description": "The Roblox Gift Card adds official account credit which can be converted into Robux to purchase avatar items, game passes and premium upgrades.",
+      "denominations": [
+        { "amount": "10 USD Credits", "original_price": 920, "discounted_price": 851 },
+        { "amount": "25 USD Credits", "original_price": 2300, "discounted_price": 2127.5 },
+        { "amount": "50 USD Credits", "original_price": 4600, "discounted_price": 4255 }
+      ]
+    },
+    {
+      "game": "Steam - Steam Wallet Balance",
+      "description": "A Steam Wallet Gift Card that credits money to your Steam Wallet, allowing you to buy games, DLC and in-game items across the Steam store.",
+      "denominations": [
+        { "amount": "150 Steam Wallet", "original_price": 150, "discounted_price": 144.75 },
+        { "amount": "175 Steam Wallet", "original_price": 175, "discounted_price": 168.88 },
+        { "amount": "250 Steam Wallet", "original_price": 250, "discounted_price": 241.25 },
+        { "amount": "500 Steam Wallet", "original_price": 500, "discounted_price": 482.5 }
+      ]
+    },
+    {
+      "game": "Valorant - Valorant Points",
+      "description": "A Valorant VP Gift Card that adds official Valorant Points to your Riot Games account, letting you unlock skins, Battle Pass tiers, agents and premium cosmetics.",
+      "denominations": [
+        { "amount": "475 VP", "original_price": 435, "discounted_price": 408.9 },
+        { "amount": "1000 VP", "original_price": 871, "discounted_price": 818.74 },
+        { "amount": "1520 VP", "original_price": 1305, "discounted_price": 1226.7 },
+        { "amount": "2050 VP", "original_price": 1740, "discounted_price": 1635.6 },
+        { "amount": "2575 VP", "original_price": 2176, "discounted_price": 2045.44 },
+        { "amount": "3650 VP", "original_price": 3047, "discounted_price": 2864.18 },
+        { "amount": "5350 VP", "original_price": 4352, "discounted_price": 4090.88 },
+        { "amount": "8700 VP", "original_price": 6960, "discounted_price": 6542.4 }
+      ]
+    }
+  ]
+}
